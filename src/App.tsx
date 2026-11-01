@@ -213,13 +213,16 @@ export const App: React.FC = () => {
     }
   }, [settings, conversations, customPersonas, customPrompts]);
 
-  // Apply Pure White / Pure Black theme class
+  // Apply Pure White / Pure Black theme class + native OS titlebar color
   useEffect(() => {
     const root = document.documentElement;
+    const meta = document.getElementById('theme-color-meta');
     if (settings.theme === 'dark') {
       root.classList.add('dark');
+      meta?.setAttribute('content', '#000000');
     } else {
       root.classList.remove('dark');
+      meta?.setAttribute('content', '#FFFFFF');
     }
   }, [settings.theme]);
 
@@ -835,161 +838,161 @@ export const App: React.FC = () => {
       {/* Desktop App Shell */}
       <div
         className={cn(
-          'w-full h-full flex flex-col overflow-hidden bg-white dark:bg-black text-black dark:text-white transition-all duration-300',
+          'w-full h-full flex overflow-hidden bg-white dark:bg-black text-black dark:text-white transition-all duration-300',
           isFramed &&
             'max-w-[1440px] max-h-[920px] rounded-2xl border border-neutral-300 dark:border-neutral-800 shadow-[0_28px_90px_rgba(0,0,0,0.22)] dark:shadow-[0_28px_90px_rgba(0,0,0,0.85)]'
         )}
       >
-        {/* Top Desktop Window Bar */}
-        <TitleBar
-          theme={settings.theme}
-          onToggleTheme={handleToggleTheme}
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen((o) => !o)}
-          inspectorOpen={inspectorOpen}
-          onToggleInspector={() => setInspectorOpen((o) => !o)}
-          onOpenCommandPalette={() => setCmdOpen(true)}
+        {/* Full-Height Left Sidebar */}
+        <Sidebar
+          isOpen={sidebarOpen}
+          onCloseSidebar={() => setSidebarOpen(false)}
+          conversations={conversations}
+          activeId={activeConvId}
+          onSelect={handleSelectConversation}
+          onNewChat={handleNewChat}
+          onDelete={handleDeleteConversation}
+          onTogglePin={handleTogglePin}
+          onRename={handleRenameConversation}
+          onExport={handleExportConversation}
+          onOpenPrompts={() => setPromptsModalOpen(true)}
+          onOpenPersonas={() => setPersonasModalOpen(true)}
+          onOpenAnalytics={() => setAnalyticsModalOpen(true)}
           onOpenSettings={() => setSettingsModalOpen(true)}
-          hasApiKey={Boolean(settings.groqApiKey.trim())}
-          isStreaming={Boolean(streamingMessageId)}
-          framedPreview={settings.framedWindowPreview}
-          onToggleFramedPreview={() =>
-            updateSettings({
-              framedWindowPreview: !settings.framedWindowPreview,
-            })
-          }
-          models={models}
-          selectedModelId={selectedModelId}
-          onSelectModel={handleSelectModel}
-          onRefreshModels={handleRefreshModels}
         />
 
-        {/* Workspace Body */}
-        <div className="flex-1 min-h-0 flex overflow-hidden relative">
-          {/* Left Thread Sidebar */}
-          <Sidebar
-            isOpen={sidebarOpen}
-            conversations={conversations}
-            activeId={activeConvId}
-            onSelect={handleSelectConversation}
-            onNewChat={handleNewChat}
-            onDelete={handleDeleteConversation}
-            onTogglePin={handleTogglePin}
-            onRename={handleRenameConversation}
-            onExport={handleExportConversation}
-            onOpenPrompts={() => setPromptsModalOpen(true)}
-            onOpenPersonas={() => setPersonasModalOpen(true)}
-            onOpenAnalytics={() => setAnalyticsModalOpen(true)}
+        {/* Right Main Column (Minimal Header + Chat Stage) */}
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          <TitleBar
+            theme={settings.theme}
+            onToggleTheme={handleToggleTheme}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen((o) => !o)}
+            inspectorOpen={inspectorOpen}
+            onToggleInspector={() => setInspectorOpen((o) => !o)}
+            onOpenCommandPalette={() => setCmdOpen(true)}
             onOpenSettings={() => setSettingsModalOpen(true)}
+            hasApiKey={Boolean(settings.groqApiKey.trim())}
+            isStreaming={Boolean(streamingMessageId)}
+            models={models}
+            selectedModelId={selectedModelId}
+            onSelectModel={handleSelectModel}
+            onRefreshModels={handleRefreshModels}
           />
 
-          {/* Center Chat & Composer Column */}
-          <main className="flex-1 min-w-0 flex flex-col bg-white dark:bg-black relative">
-            {/* Scrollable Messages / Welcome Stage */}
-            <div
-              ref={scrollContainerRef}
-              onScroll={handleScroll}
-              className="flex-1 overflow-y-auto"
-            >
+          <div className="flex-1 min-h-0 flex overflow-hidden relative">
+            {/* Center Chat & Composer Column */}
+            <main className="flex-1 min-w-0 flex flex-col bg-white dark:bg-black relative">
               {!activeConversation ||
               activeConversation.messages.length === 0 ? (
-                <WelcomeScreen
-                  hasApiKey={Boolean(settings.groqApiKey.trim())}
-                  onSaveApiKey={(newKey, syncedModels) => {
-                    updateSettings({ groqApiKey: newKey });
-                    if (syncedModels && syncedModels.length > 0) {
-                      setModels(syncedModels);
-                    }
-                  }}
-                  models={models}
-                  selectedModelId={selectedModelId}
-                  onSelectModel={handleSelectModel}
-                  personas={allPersonas}
-                  selectedPersonaId={selectedPersonaId}
-                  onSelectPersona={handleSelectPersona}
-                  onPickPrompt={(promptText, forceDemo) => {
-                    handleSendMessage(promptText, [], Boolean(forceDemo));
-                  }}
-                />
-              ) : (
-                <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 divide-y divide-neutral-100 dark:divide-neutral-900/70">
-                  {activeConversation.messages.map((msg, idx) => {
-                    const isLast =
-                      idx === activeConversation.messages.length - 1;
-                    return (
-                      <MessageItem
-                        key={msg.id}
-                        message={msg}
-                        isStreamingThis={streamingMessageId === msg.id}
-                        showTelemetry={settings.showTelemetry}
-                        models={models}
-                        onRegenerate={handleRegenerate}
-                        onEditUserMessage={handleEditUserMessage}
-                        onOpenArtifact={(art) => setActiveArtifact(art)}
-                        onOpenSettings={() => setSettingsModalOpen(true)}
-                        onRunDemoForLastTurn={
-                          isLast ? handleRunDemoForLastTurn : undefined
-                        }
-                      />
-                    );
-                  })}
+                <div className="flex-1 overflow-y-auto">
+                  <WelcomeScreen
+                    hasApiKey={Boolean(settings.groqApiKey.trim())}
+                    onSaveApiKey={(newKey, syncedModels) => {
+                      updateSettings({ groqApiKey: newKey });
+                      if (syncedModels && syncedModels.length > 0) {
+                        setModels(syncedModels);
+                      }
+                    }}
+                    onSend={(txt, atts) => handleSendMessage(txt, atts, false)}
+                    onStop={handleStopStreaming}
+                    isStreaming={Boolean(streamingMessageId)}
+                    sendOnEnter={settings.sendOnEnter}
+                    apiKey={settings.groqApiKey}
+                    personas={allPersonas}
+                    selectedPersonaId={selectedPersonaId}
+                    onSelectPersona={handleSelectPersona}
+                    prompts={allPrompts}
+                    externalDraft={composerDraft}
+                    onConsumeExternalDraft={() => setComposerDraft(null)}
+                    onPickPrompt={(promptText, forceDemo) => {
+                      handleSendMessage(promptText, [], Boolean(forceDemo));
+                    }}
+                  />
                 </div>
-              )}
-            </div>
+              ) : (
+                <>
+                  <div
+                    ref={scrollContainerRef}
+                    onScroll={handleScroll}
+                    className="flex-1 overflow-y-auto"
+                  >
+                    <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-2">
+                      {activeConversation.messages.map((msg, idx) => {
+                        const isLast =
+                          idx === activeConversation.messages.length - 1;
+                        return (
+                          <MessageItem
+                            key={msg.id}
+                            message={msg}
+                            isStreamingThis={streamingMessageId === msg.id}
+                            showTelemetry={settings.showTelemetry}
+                            models={models}
+                            onRegenerate={handleRegenerate}
+                            onEditUserMessage={handleEditUserMessage}
+                            onOpenArtifact={(art) => setActiveArtifact(art)}
+                            onOpenSettings={() => setSettingsModalOpen(true)}
+                            onRunDemoForLastTurn={
+                              isLast ? handleRunDemoForLastTurn : undefined
+                            }
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
 
-            {/* Floating Scroll-To-Bottom Button */}
-            <AnimatePresence>
-              {showScrollBottom && (
-                <motion.button
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  type="button"
-                  onClick={() => scrollToBottom('smooth')}
-                  className="absolute bottom-28 left-1/2 -translate-x-1/2 h-8 px-3 rounded-full bg-black text-white dark:bg-white dark:text-black text-xs font-medium shadow-lg flex items-center gap-1.5 z-20"
-                >
-                  <ArrowDown className="w-3.5 h-3.5" />
-                  <span>Latest</span>
-                </motion.button>
-              )}
-            </AnimatePresence>
+                  {/* Floating Scroll-To-Bottom Button */}
+                  <AnimatePresence>
+                    {showScrollBottom && (
+                      <motion.button
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        type="button"
+                        onClick={() => scrollToBottom('smooth')}
+                        className="absolute bottom-24 left-1/2 -translate-x-1/2 h-8 px-3 rounded-full bg-black text-white dark:bg-white dark:text-black text-xs font-medium shadow-lg flex items-center gap-1.5 z-20"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                        <span>Latest</span>
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
 
-            {/* Bottom Floating Monochrome Composer */}
-            <Composer
-              onSend={(txt, atts) => handleSendMessage(txt, atts, false)}
-              onStop={handleStopStreaming}
-              isStreaming={Boolean(streamingMessageId)}
-              sendOnEnter={settings.sendOnEnter}
-              apiKey={settings.groqApiKey}
-              models={models}
-              selectedModelId={selectedModelId}
-              onSelectModel={handleSelectModel}
-              onRefreshModels={handleRefreshModels}
-              personas={allPersonas}
-              selectedPersonaId={selectedPersonaId}
-              onSelectPersona={handleSelectPersona}
-              prompts={allPrompts}
-              externalDraft={composerDraft}
-              onConsumeExternalDraft={() => setComposerDraft(null)}
+                  {/* Bottom Docked Composer when inside an active conversation */}
+                  <Composer
+                    onSend={(txt, atts) => handleSendMessage(txt, atts, false)}
+                    onStop={handleStopStreaming}
+                    isStreaming={Boolean(streamingMessageId)}
+                    sendOnEnter={settings.sendOnEnter}
+                    apiKey={settings.groqApiKey}
+                    personas={allPersonas}
+                    selectedPersonaId={selectedPersonaId}
+                    onSelectPersona={handleSelectPersona}
+                    prompts={allPrompts}
+                    externalDraft={composerDraft}
+                    onConsumeExternalDraft={() => setComposerDraft(null)}
+                  />
+                </>
+              )}
+            </main>
+
+            {/* Split-Screen Live HTML/SVG Artifact Canvas */}
+            <ArtifactDrawer
+              artifact={activeArtifact}
+              onClose={() => setActiveArtifact(null)}
             />
-          </main>
 
-          {/* Split-Screen Live HTML/SVG Artifact Canvas */}
-          <ArtifactDrawer
-            artifact={activeArtifact}
-            onClose={() => setActiveArtifact(null)}
-          />
-
-          {/* Right Slide-Over Model Parameter Inspector */}
-          <InspectorPanel
-            isOpen={inspectorOpen}
-            onClose={() => setInspectorOpen(false)}
-            params={params}
-            onChangeParams={setParams}
-            activeModel={activeModel}
-            activePersona={activePersona}
-            estimatedContextChars={estimatedContextChars}
-          />
+            {/* Right Slide-Over Model Parameter Inspector */}
+            <InspectorPanel
+              isOpen={inspectorOpen}
+              onClose={() => setInspectorOpen(false)}
+              params={params}
+              onChangeParams={setParams}
+              activeModel={activeModel}
+              activePersona={activePersona}
+              estimatedContextChars={estimatedContextChars}
+            />
+          </div>
         </div>
       </div>
 

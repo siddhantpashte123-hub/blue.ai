@@ -12,6 +12,8 @@ build/
 .env
 .env.local
 .env.*.local
+public/blue.ai.exe
+*.lib
 
 # Logs & OS files
 *.log

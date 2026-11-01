@@ -4,7 +4,6 @@ import {
   Brain,
   Check,
   ChevronDown,
-  Cpu,
   Eye,
   RefreshCw,
   Search,
@@ -21,7 +20,6 @@ interface ModelSwitcherProps {
   onSelectModel: (modelId: string) => void;
   onRefreshModels?: () => Promise<void> | void;
   placement?: 'bottom' | 'top';
-  compact?: boolean;
 }
 
 export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
@@ -30,7 +28,6 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
   onSelectModel,
   onRefreshModels,
   placement = 'bottom',
-  compact = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -43,7 +40,6 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
     [models, selectedModelId]
   );
 
-  // Close when clicking outside or pressing Escape
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (e: MouseEvent) => {
@@ -102,7 +98,7 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
   };
 
   const tabs: Array<{ id: FilterTab; label: string }> = [
-    { id: 'all', label: `All (${models.length})` },
+    { id: 'all', label: 'All' },
     { id: 'fast', label: 'Fast' },
     { id: 'reasoning', label: 'Reasoning' },
     { id: 'vision', label: 'Vision' },
@@ -110,45 +106,25 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
 
   return (
     <div ref={containerRef} className="app-no-drag relative">
-      {/* Trigger Pill */}
+      {/* Ultra-Clean Borderless Trigger (ChatGPT / Linear style) */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         title="Switch Groq AI Model"
         className={cn(
-          'rounded-full border transition-all flex items-center gap-1.5 font-medium',
-          compact ? 'h-7 px-2.5 text-xs' : 'h-8 px-3 text-xs',
+          'h-8 px-2.5 rounded-lg text-[13px] font-semibold tracking-tight flex items-center gap-1.5 transition-colors',
           open
-            ? 'border-black bg-black text-white dark:border-white dark:bg-white dark:text-black'
-            : 'border-neutral-200 dark:border-neutral-800 hover:border-black dark:hover:border-white bg-neutral-50 dark:bg-neutral-900 text-black dark:text-white'
+            ? 'bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white'
+            : 'text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900'
         )}
       >
-        <Cpu className="w-3.5 h-3.5 shrink-0 opacity-75" />
-        {!compact && (
-          <span className="hidden xl:inline text-[11px] opacity-55 font-normal">
-            Model:
-          </span>
-        )}
-        <span className="max-w-[130px] sm:max-w-[185px] truncate font-semibold">
+        <span className="max-w-[180px] sm:max-w-[230px] truncate">
           {activeModel?.name || selectedModelId}
         </span>
-        {!compact && activeModel?.speedLabel && (
-          <span
-            className={cn(
-              'hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono',
-              open
-                ? 'bg-white/20 text-white dark:bg-black/15 dark:text-black'
-                : 'bg-neutral-200/70 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300'
-            )}
-          >
-            <Zap className="w-2.5 h-2.5" />
-            {activeModel.speedLabel}
-          </span>
-        )}
         <ChevronDown
           className={cn(
-            'w-3.5 h-3.5 opacity-65 transition-transform duration-150',
-            open && 'rotate-180'
+            'w-3.5 h-3.5 text-neutral-400 transition-transform duration-150',
+            open && 'rotate-180 text-black dark:text-white'
           )}
         />
       </button>
@@ -159,21 +135,21 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
           <motion.div
             initial={{
               opacity: 0,
-              y: placement === 'bottom' ? -6 : 6,
-              scale: 0.97,
+              y: placement === 'bottom' ? -4 : 4,
+              scale: 0.98,
             }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{
               opacity: 0,
-              y: placement === 'bottom' ? -6 : 6,
-              scale: 0.97,
+              y: placement === 'bottom' ? -4 : 4,
+              scale: 0.98,
             }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.14 }}
             className={cn(
-              'w-[340px] sm:w-[375px] rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl p-2.5 z-50',
+              'w-[330px] sm:w-[360px] rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#0C0C0C] shadow-2xl p-2 z-50',
               placement === 'bottom'
-                ? 'absolute left-0 top-full mt-2'
-                : 'absolute left-0 bottom-full mb-2'
+                ? 'absolute left-0 top-full mt-1.5'
+                : 'absolute left-0 bottom-full mb-1.5'
             )}
           >
             {/* Search & Sync Bar */}
@@ -185,8 +161,8 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search Groq LPU models..."
-                  className="w-full h-8 pl-8 pr-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs text-black dark:text-white outline-none focus:border-black dark:focus:border-white"
+                  placeholder="Search models..."
+                  className="w-full h-8 pl-8 pr-3 rounded-xl bg-neutral-50 dark:bg-neutral-900/80 border border-transparent focus:border-neutral-300 dark:focus:border-neutral-700 text-xs text-black dark:text-white outline-none transition-colors"
                 />
               </div>
 
@@ -194,8 +170,8 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
                 <button
                   type="button"
                   onClick={handleRefresh}
-                  title="Sync Live Models from Groq API"
-                  className="h-8 w-8 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:border-black dark:hover:border-white flex items-center justify-center text-neutral-600 dark:text-neutral-300 hover:text-black dark:hover:text-white transition-colors shrink-0"
+                  title="Refresh Live Groq Models"
+                  className="h-8 w-8 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center justify-center text-neutral-500 hover:text-black dark:hover:text-white transition-colors shrink-0"
                 >
                   <RefreshCw
                     className={cn(
@@ -208,7 +184,7 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
             </div>
 
             {/* Category Filter Pills */}
-            <div className="flex items-center gap-1 mb-2 pb-2 border-b border-neutral-100 dark:border-neutral-900">
+            <div className="flex items-center gap-1 mb-1.5 px-0.5">
               {tabs.map((t) => {
                 const active = filter === t.id;
                 return (
@@ -217,7 +193,7 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
                     type="button"
                     onClick={() => setFilter(t.id)}
                     className={cn(
-                      'px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors',
+                      'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors',
                       active
                         ? 'bg-black text-white dark:bg-white dark:text-black'
                         : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900'
@@ -229,16 +205,15 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
               })}
             </div>
 
-            {/* Model Rows */}
-            <div className="max-h-72 overflow-y-auto space-y-1 pr-0.5">
+            {/* Model List */}
+            <div className="max-h-72 overflow-y-auto space-y-0.5 pr-0.5 pt-1 border-t border-neutral-100 dark:border-neutral-900">
               {filteredModels.length === 0 ? (
                 <div className="py-8 text-center text-xs text-neutral-400">
-                  No models match this filter.
+                  No models found.
                 </div>
               ) : (
                 filteredModels.map((model) => {
                   const selected = model.id === selectedModelId;
-                  const ctxK = Math.round((model.contextWindow || 131072) / 1024);
                   return (
                     <button
                       key={model.id}
@@ -249,58 +224,35 @@ export const ModelSwitcher: React.FC<ModelSwitcherProps> = ({
                         setQuery('');
                       }}
                       className={cn(
-                        'w-full text-left p-2.5 rounded-xl transition-colors flex items-start justify-between gap-2',
+                        'w-full text-left px-2.5 py-2 rounded-xl transition-colors flex items-center justify-between gap-2',
                         selected
-                          ? 'bg-black text-white dark:bg-white dark:text-black'
-                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-800 dark:text-neutral-200'
+                          ? 'bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white'
+                          : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/60 text-neutral-700 dark:text-neutral-300'
                       )}
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-semibold truncate">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-medium truncate text-black dark:text-white">
                             {model.name}
                           </span>
                           {model.supportsVision && (
-                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-mono uppercase border border-current opacity-80">
-                              <Eye className="w-2.5 h-2.5 mr-0.5" />
-                              Vision
-                            </span>
+                            <Eye className="w-3 h-3 text-neutral-400 shrink-0" />
                           )}
                           {model.supportsReasoning && (
-                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-mono uppercase border border-current opacity-80">
-                              <Brain className="w-2.5 h-2.5 mr-0.5" />
-                              Think
-                            </span>
+                            <Brain className="w-3 h-3 text-neutral-400 shrink-0" />
                           )}
                         </div>
-                        <p
-                          className={cn(
-                            'text-[11px] line-clamp-1 mt-0.5',
-                            selected
-                              ? 'text-white/75 dark:text-black/75'
-                              : 'text-neutral-500'
-                          )}
-                        >
-                          {model.description}
-                        </p>
-                        <p
-                          className={cn(
-                            'text-[10px] font-mono mt-1',
-                            selected
-                              ? 'text-white/60 dark:text-black/60'
-                              : 'text-neutral-400'
-                          )}
-                        >
-                          {model.provider} • {ctxK}K ctx
+                        <p className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">
+                          {model.provider} • {model.speedLabel}
                         </p>
                       </div>
 
-                      <div className="flex flex-col items-end shrink-0 gap-1.5">
-                        <span className="text-[10px] font-mono opacity-85 flex items-center gap-0.5">
-                          <Zap className="w-2.5 h-2.5" />
-                          {model.speedLabel}
-                        </span>
-                        {selected && <Check className="w-3.5 h-3.5" />}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {selected ? (
+                          <Check className="w-3.5 h-3.5 text-black dark:text-white" />
+                        ) : (
+                          <Zap className="w-3 h-3 text-neutral-300 dark:text-neutral-700" />
+                        )}
                       </div>
                     </button>
                   );

@@ -233,18 +233,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         />
       </div>
 
-      <div className="min-w-0 flex-1 space-y-2.5">
-        {/* Header Label */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold tracking-tight text-black dark:text-white">
-            blue.ai
+      <div className="min-w-0 flex-1 space-y-2">
+        {message.telemetry?.isDemo && (
+          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider border border-neutral-200 dark:border-neutral-800 text-neutral-400">
+            Demo
           </span>
-          {message.telemetry?.isDemo && (
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider border border-neutral-300 dark:border-neutral-700 text-neutral-500">
-              Studio Demo
-            </span>
-          )}
-        </div>
+        )}
 
         {/* Collapsible Reasoning / Thought Process Drawer */}
         {reasoning && (
@@ -371,26 +365,20 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           </div>
         )}
 
-        {/* Bottom Actions & Groq Speedometer Telemetry */}
+        {/* Clean Minimal Bottom Actions & Speed Telemetry */}
         {!isStreamingThis && !message.error && (
-          <div className="pt-1 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1">
+          <div className="pt-0.5 flex items-center justify-between gap-2 opacity-75 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-0.5 -ml-1.5">
               <button
                 type="button"
                 onClick={handleCopy}
-                title="Copy response"
-                className="h-7 px-2 rounded-lg text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-1 text-[11px] transition-colors"
+                title="Copy"
+                className="h-7 w-7 rounded-lg text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center justify-center transition-colors"
               >
                 {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-black dark:text-white" />
-                    <span>Copied</span>
-                  </>
+                  <Check className="w-3.5 h-3.5 text-black dark:text-white" />
                 ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy</span>
-                  </>
+                  <Copy className="w-3.5 h-3.5" />
                 )}
               </button>
 
@@ -399,55 +387,42 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 onClick={handleSpeak}
                 title={speaking ? 'Stop Reading' : 'Read Aloud'}
                 className={cn(
-                  'h-7 px-2 rounded-lg flex items-center gap-1 text-[11px] transition-colors',
+                  'h-7 w-7 rounded-lg flex items-center justify-center transition-colors',
                   speaking
                     ? 'bg-black text-white dark:bg-white dark:text-black'
                     : 'text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900'
                 )}
               >
                 {speaking ? (
-                  <>
-                    <VolumeX className="w-3.5 h-3.5" />
-                    <span>Stop</span>
-                  </>
+                  <VolumeX className="w-3.5 h-3.5" />
                 ) : (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5" />
-                    <span>Listen</span>
-                  </>
+                  <Volume2 className="w-3.5 h-3.5" />
                 )}
               </button>
 
-              {/* Regenerate + Model Switch Retry */}
-              <div className="relative">
-                <div className="flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => onRegenerate(message.id)}
-                    title="Regenerate response"
-                    className="h-7 px-2 rounded-l-lg text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-1 text-[11px] transition-colors"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Retry</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRetryMenuOpen((o) => !o)}
-                    title="Retry with another Groq model"
-                    className="h-7 px-1 rounded-r-lg text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
-                  >
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-                </div>
+              <div className="relative flex items-center">
+                <button
+                  type="button"
+                  onClick={() => onRegenerate(message.id)}
+                  title="Regenerate"
+                  className="h-7 w-7 rounded-l-lg text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center justify-center transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRetryMenuOpen((o) => !o)}
+                  title="Switch model & retry"
+                  className="h-7 px-1 rounded-r-lg text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+                >
+                  <ChevronDown className="w-3 h-3" />
+                </button>
 
                 {retryMenuOpen && (
                   <div
                     onMouseLeave={() => setRetryMenuOpen(false)}
-                    className="absolute left-0 bottom-8 w-56 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-xl p-1.5 z-20"
+                    className="absolute left-0 bottom-8 w-56 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#0D0D0D] shadow-xl p-1.5 z-20"
                   >
-                    <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-400">
-                      Retry with Model
-                    </div>
                     <div className="max-h-48 overflow-y-auto space-y-0.5">
                       {models.slice(0, 7).map((m) => (
                         <button
@@ -457,10 +432,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                             setRetryMenuOpen(false);
                             onRegenerate(message.id, m.id);
                           }}
-                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-neutral-700 dark:text-neutral-300 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex items-center justify-between transition-colors"
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center justify-between transition-colors"
                         >
                           <span className="truncate">{m.name}</span>
-                          <span className="text-[10px] font-mono opacity-60 ml-2 shrink-0">
+                          <span className="text-[10px] font-mono opacity-55 ml-2 shrink-0">
                             {m.speedLabel}
                           </span>
                         </button>
@@ -471,23 +446,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
               </div>
             </div>
 
-            {/* Groq LPU Telemetry Speedometer Pill */}
             {showTelemetry && message.telemetry && (
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 text-[11px] font-mono text-neutral-500 dark:text-neutral-400">
-                <span className="inline-flex items-center gap-1 text-black dark:text-white font-semibold">
-                  <Zap className="w-3 h-3" />
-                  {message.telemetry.tokensPerSec} tok/s
-                </span>
-                <span>•</span>
-                <span>TTFT {message.telemetry.ttftMs}ms</span>
-                <span className="hidden sm:inline">•</span>
-                <span className="hidden sm:inline">
-                  {message.telemetry.completionTokens} tok
-                </span>
-                <span className="hidden md:inline">•</span>
-                <span className="hidden md:inline truncate max-w-[140px]">
-                  {message.telemetry.model.split('/').pop()}
-                </span>
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-neutral-400 dark:text-neutral-600 select-none">
+                <Zap className="w-3 h-3" />
+                <span>{message.telemetry.tokensPerSec} tok/s</span>
+                <span>·</span>
+                <span>{message.telemetry.ttftMs}ms</span>
               </div>
             )}
           </div>

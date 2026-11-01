@@ -114,7 +114,7 @@ export interface BlueDesktopBridge {
   }>;
   setAlwaysOnTop: (flag: boolean) => Promise<boolean>;
   openExternal: (url: string) => Promise<boolean>;
-  saveFile: (payload: {
+  saveFile?: (payload: {
     defaultName: string;
     content: string;
     filters?: Array<{ name: string; extensions: string[] }>;
@@ -127,5 +127,6 @@ export interface BlueDesktopBridge {
 declare global {
   interface Window {
     blueDesktop?: BlueDesktopBridge;
+    isStandaloneExe?: boolean;
   }
 }

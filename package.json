@@ -49,13 +49,25 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "package.json"
+      "package.json",
+      "!node_modules/**/*"
     ],
     "win": {
+      "signAndEditExecutable": false,
       "target": [
         "nsis",
         "portable"
       ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "blue.ai",
+      "artifactName": "blue.ai-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "blue.ai-Portable-${version}.${ext}"
     },
     "mac": {
       "target": [
