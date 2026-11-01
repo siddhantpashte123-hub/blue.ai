@@ -426,14 +426,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 1;
   }
 
-  // If primary port 45731 already runs blue.ai, simply open a window to it!
-  if (IsExistingBlueAiRunning(45731)) {
-    HANDLE h = LaunchDesktopWindow(45731);
-    if (h) CloseHandle(h);
-    WSACleanup();
-    return 0;
-  }
-
   InitializeCriticalSection(&g_storageLock);
 
   SOCKET listenSock = INVALID_SOCKET;

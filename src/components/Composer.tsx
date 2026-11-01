@@ -7,20 +7,14 @@ import {
   FileCode2,
   Loader2,
   Mic,
-  Paperclip,
+  Plus,
   Sparkles,
   Square,
   X,
 } from 'lucide-react';
-import {
-  Attachment,
-  GroqModelInfo,
-  Persona,
-  PromptTemplate,
-} from '../types';
+import { Attachment, Persona, PromptTemplate } from '../types';
 import { transcribeAudioWithGroq } from '../services/groq';
 import { cn, formatBytes, processUploadedFile } from '../utils/helpers';
-import { ModelSwitcher } from './ModelSwitcher';
 
 interface ComposerProps {
   onSend: (text: string, attachments: Attachment[]) => void;
@@ -28,16 +22,13 @@ interface ComposerProps {
   isStreaming: boolean;
   sendOnEnter: boolean;
   apiKey: string;
-  models: GroqModelInfo[];
-  selectedModelId: string;
-  onSelectModel: (modelId: string) => void;
-  onRefreshModels?: () => Promise<void> | void;
   personas: Persona[];
   selectedPersonaId: string;
   onSelectPersona: (personaId: string) => void;
   prompts: PromptTemplate[];
   externalDraft?: string | null;
   onConsumeExternalDraft?: () => void;
+  centeredMode?: boolean;
 }
 
 export const Composer: React.FC<ComposerProps> = ({
@@ -46,16 +37,13 @@ export const Composer: React.FC<ComposerProps> = ({
   isStreaming,
   sendOnEnter,
   apiKey,
-  models,
-  selectedModelId,
-  onSelectModel,
-  onRefreshModels,
   personas,
   selectedPersonaId,
   onSelectPersona,
   prompts,
   externalDraft,
   onConsumeExternalDraft,
+  centeredMode = false,
 }) => {
   const [text, setText] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -72,22 +60,29 @@ export const Composer: React.FC<ComposerProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const personaRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const animFrameRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-
-  const activeModel = useMemo(
-    () => models.find((m) => m.id === selectedModelId) || models[0],
-    [models, selectedModelId]
-  );
 
   const activePersona = useMemo(
     () => personas.find((p) => p.id === selectedPersonaId) || personas[0],
     [personas, selectedPersonaId]
   );
 
-  // Consume external starter or vault prompt
+  // Close persona menu on outside click
+  useEffect(() => {
+    if (!personaMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (personaRef.current && !personaRef.current.contains(e.target as Node)) {
+        setPersonaMenuOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, [personaMenuOpen]);
+
   useEffect(() => {
     if (externalDraft !== null && externalDraft !== undefined) {
       setText(externalDraft);
@@ -98,15 +93,13 @@ export const Composer: React.FC<ComposerProps> = ({
     }
   }, [externalDraft, onConsumeExternalDraft]);
 
-  // Auto-resize textarea height
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 190)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
   }, [text]);
 
-  // Slash command matching when input starts with `/`
   const slashMatches = useMemo(() => {
     if (!text.startsWith('/') || text.includes('\n') || text.includes(' ')) {
       return [];
@@ -221,7 +214,6 @@ export const Composer: React.FC<ComposerProps> = ({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
 
-      // Live audio frequency visualizer
       try {
         const ctx = new AudioContext();
         audioCtxRef.current = ctx;
@@ -242,7 +234,7 @@ export const Composer: React.FC<ComposerProps> = ({
         };
         tick();
       } catch {
-        // Fallback visual pulse if AudioContext restricted
+        // Fallback pulse
       }
 
       const recorder = new MediaRecorder(stream);
@@ -261,7 +253,7 @@ export const Composer: React.FC<ComposerProps> = ({
         if (blob.size < 200) return;
 
         if (!apiKey.trim()) {
-          setVoiceError('Connect your Groq API Key to transcribe voice with Whisper LPU.');
+          setVoiceError('Add your Groq API key to use Whisper voice transcription.');
           return;
         }
 
@@ -280,7 +272,7 @@ export const Composer: React.FC<ComposerProps> = ({
       recorder.start();
       setIsRecording(true);
     } catch {
-      setVoiceError('Microphone access unavailable in this browser context.');
+      setVoiceError('Microphone access unavailable.');
     }
   };
 
@@ -298,22 +290,21 @@ export const Composer: React.FC<ComposerProps> = ({
           await handleFiles(e.dataTransfer.files);
         }
       }}
-      className="relative w-full max-w-3xl mx-auto px-3 sm:px-4 pb-3 pt-1"
+      className={cn(
+        'relative w-full max-w-2xl mx-auto',
+        centeredMode ? 'px-0' : 'px-4 pb-5 pt-2'
+      )}
     >
-      {/* Floating Slash Command Menu */}
+      {/* Slash Command Popover */}
       <AnimatePresence>
         {slashMatches.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.98 }}
-            transition={{ duration: 0.14 }}
-            className="absolute left-4 right-4 bottom-full mb-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl p-1.5 z-30"
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.13 }}
+            className="absolute left-4 right-4 bottom-full mb-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#0D0D0D] shadow-2xl p-1.5 z-30"
           >
-            <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-widest text-neutral-400 flex items-center justify-between">
-              <span>Slash Commands</span>
-              <span>↑↓ Navigate • Enter</span>
-            </div>
             <div className="max-h-52 overflow-y-auto space-y-0.5">
               {slashMatches.map((tpl, idx) => (
                 <button
@@ -331,13 +322,10 @@ export const Composer: React.FC<ComposerProps> = ({
                     <span className="font-mono text-xs font-semibold">
                       {tpl.command}
                     </span>
-                    <span className="text-xs truncate opacity-85">
+                    <span className="text-xs truncate opacity-80">
                       {tpl.title}
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono uppercase opacity-60 ml-2 shrink-0">
-                    {tpl.category}
-                  </span>
                 </button>
               ))}
             </div>
@@ -345,9 +333,8 @@ export const Composer: React.FC<ComposerProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Voice Notice */}
       {voiceError && (
-        <div className="mb-2 px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 text-xs text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
+        <div className="mb-2 px-3 py-1.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-xs text-neutral-700 dark:text-neutral-300 flex items-center justify-between">
           <span>{voiceError}</span>
           <button
             type="button"
@@ -359,31 +346,31 @@ export const Composer: React.FC<ComposerProps> = ({
         </div>
       )}
 
-      {/* Main Monochrome Composer Box */}
+      {/* Clean Elevated Input Container */}
       <div
         className={cn(
-          'rounded-3xl border bg-white dark:bg-[#0B0B0B] transition-all shadow-sm',
+          'rounded-[24px] border bg-neutral-50/90 dark:bg-[#0E0E0E] transition-all',
           isDragging
-            ? 'border-black dark:border-white ring-2 ring-black/15 dark:ring-white/15'
-            : 'border-neutral-200 dark:border-neutral-800 focus-within:border-black dark:focus-within:border-white'
+            ? 'border-black dark:border-white ring-2 ring-black/10 dark:ring-white/10'
+            : 'border-neutral-200/90 dark:border-neutral-800/90 focus-within:border-neutral-400 dark:focus-within:border-neutral-600 focus-within:bg-white dark:focus-within:bg-[#111111] shadow-[0_2px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.45)]'
         )}
       >
-        {/* Attached Files / Images Strip */}
+        {/* Attachments Strip */}
         {attachments.length > 0 && (
           <div className="px-3.5 pt-3 pb-1 flex flex-wrap gap-2">
             {attachments.map((att) => (
               <div
                 key={att.id}
-                className="group relative rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 p-1.5 pr-7 flex items-center gap-2 text-xs"
+                className="relative rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-1.5 pr-7 flex items-center gap-2 text-xs"
               >
                 {att.type === 'image' ? (
                   <img
                     src={att.content}
                     alt={att.name}
-                    className="w-9 h-9 rounded-lg object-cover"
+                    className="w-8 h-8 rounded-lg object-cover"
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-lg bg-black text-white dark:bg-white dark:text-black flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-black text-white dark:bg-white dark:text-black flex items-center justify-center shrink-0">
                     <FileCode2 className="w-4 h-4" />
                   </div>
                 )}
@@ -391,7 +378,7 @@ export const Composer: React.FC<ComposerProps> = ({
                   <p className="font-medium truncate max-w-[130px] text-black dark:text-white">
                     {att.name}
                   </p>
-                  <p className="text-[10px] text-neutral-500">
+                  <p className="text-[10px] text-neutral-400">
                     {formatBytes(att.size)}
                   </p>
                 </div>
@@ -400,7 +387,7 @@ export const Composer: React.FC<ComposerProps> = ({
                   onClick={() =>
                     setAttachments((prev) => prev.filter((x) => x.id !== att.id))
                   }
-                  className="absolute right-1.5 top-1.5 p-1 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 hover:text-black dark:hover:text-white"
+                  className="absolute right-1.5 top-1.5 p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 hover:text-black dark:hover:text-white"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -409,16 +396,16 @@ export const Composer: React.FC<ComposerProps> = ({
           </div>
         )}
 
-        {/* Active Voice Waveform Banner */}
+        {/* Active Voice Waveform */}
         {isRecording && (
           <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-black dark:bg-white animate-ping" />
               <span className="text-xs font-medium text-black dark:text-white">
-                Listening... Click stop to transcribe via Groq Whisper
+                Listening...
               </span>
             </div>
-            <div className="flex items-center gap-1 h-5">
+            <div className="flex items-center gap-1 h-4">
               {audioBars.map((val, i) => (
                 <span
                   key={i}
@@ -431,7 +418,7 @@ export const Composer: React.FC<ComposerProps> = ({
         )}
 
         {/* Textarea */}
-        <div className="px-4 pt-3.5 pb-2">
+        <div className="px-4 pt-3.5 pb-1.5">
           <textarea
             ref={textareaRef}
             rows={1}
@@ -440,18 +427,15 @@ export const Composer: React.FC<ComposerProps> = ({
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             placeholder={
-              isTranscribing
-                ? 'Transcribing voice with Groq Whisper LPU...'
-                : 'Ask anything, paste screenshots, or type / for commands...'
+              isTranscribing ? 'Transcribing voice...' : 'Message blue.ai...'
             }
-            className="w-full bg-transparent text-[14px] leading-relaxed text-black dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 outline-none resize-none max-h-48"
+            className="w-full bg-transparent text-[14.5px] leading-relaxed text-black dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 outline-none resize-none max-h-44"
           />
         </div>
 
-        {/* Bottom Controls Bar */}
-        <div className="px-3 pb-2.5 pt-1 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 flex-wrap">
-            {/* Hidden File Input */}
+        {/* Clean Minimal Bottom Action Row */}
+        <div className="px-2.5 pb-2.5 pt-0.5 flex items-center justify-between">
+          <div className="flex items-center gap-1">
             <input
               ref={fileInputRef}
               type="file"
@@ -466,52 +450,43 @@ export const Composer: React.FC<ComposerProps> = ({
               className="hidden"
             />
 
-            {/* Attach Button */}
+            {/* Plus Attach Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              title="Attach Images (Vision) or Code/Text Files"
-              className="h-8 w-8 rounded-full flex items-center justify-center text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+              title="Attach image or file"
+              className="h-8 w-8 rounded-full flex items-center justify-center text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200/60 dark:hover:bg-neutral-800/80 transition-colors"
             >
-              <Paperclip className="w-4 h-4" />
+              <Plus className="w-4 h-4" />
             </button>
 
-            {/* Groq Model Selector */}
-            <ModelSwitcher
-              models={models}
-              selectedModelId={selectedModelId}
-              onSelectModel={onSelectModel}
-              onRefreshModels={onRefreshModels}
-              placement="top"
-              compact
-            />
-
-            {/* Persona Selector Pill */}
-            <div className="relative">
+            {/* Subtle Ghost Persona Selector */}
+            <div ref={personaRef} className="relative">
               <button
                 type="button"
                 onClick={() => setPersonaMenuOpen((o) => !o)}
-                className="h-7 px-2.5 rounded-full border border-neutral-200 dark:border-neutral-800 hover:border-black dark:hover:border-white bg-neutral-50 dark:bg-neutral-900 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:text-black dark:hover:text-white flex items-center gap-1.5 transition-colors"
+                title="Switch AI Persona"
+                className={cn(
+                  'h-7 px-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors',
+                  personaMenuOpen
+                    ? 'bg-neutral-200/80 dark:bg-neutral-800 text-black dark:text-white'
+                    : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200/60 dark:hover:bg-neutral-800/70'
+                )}
               >
                 <Sparkles className="w-3 h-3" />
-                <span className="hidden sm:inline max-w-[115px] truncate">
-                  {activePersona?.name}
-                </span>
+                <span>{activePersona?.name}</span>
                 <ChevronDown className="w-3 h-3 opacity-60" />
               </button>
 
               <AnimatePresence>
                 {personaMenuOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                    initial={{ opacity: 0, y: 4, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                    transition={{ duration: 0.14 }}
-                    className="absolute left-0 bottom-9 w-64 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl p-1.5 z-40"
+                    exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                    transition={{ duration: 0.13 }}
+                    className="absolute left-0 bottom-9 w-56 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#0D0D0D] shadow-2xl p-1.5 z-40"
                   >
-                    <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-400">
-                      Active Persona
-                    </div>
                     <div className="max-h-56 overflow-y-auto space-y-0.5">
                       {personas.map((p) => {
                         const active = p.id === selectedPersonaId;
@@ -526,22 +501,15 @@ export const Composer: React.FC<ComposerProps> = ({
                             className={cn(
                               'w-full text-left px-2.5 py-2 rounded-xl transition-colors flex items-center justify-between',
                               active
-                                ? 'bg-black text-white dark:bg-white dark:text-black'
-                                : 'hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-800 dark:text-neutral-200'
+                                ? 'bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white'
+                                : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/60 text-neutral-700 dark:text-neutral-300'
                             )}
                           >
                             <div className="min-w-0">
-                              <p className="text-xs font-semibold truncate">
+                              <p className="text-xs font-medium truncate">
                                 {p.name}
                               </p>
-                              <p
-                                className={cn(
-                                  'text-[10px] truncate',
-                                  active
-                                    ? 'text-white/75 dark:text-black/75'
-                                    : 'text-neutral-500'
-                                )}
-                              >
+                              <p className="text-[10px] text-neutral-400 truncate">
                                 {p.tagline}
                               </p>
                             </div>
@@ -556,22 +524,18 @@ export const Composer: React.FC<ComposerProps> = ({
             </div>
           </div>
 
-          {/* Right: Voice Mic + Send / Stop */}
-          <div className="flex items-center gap-1.5">
+          {/* Right: Mic + Send / Stop */}
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={toggleVoiceRecording}
               disabled={isTranscribing}
-              title={
-                isRecording
-                  ? 'Stop & Transcribe (Groq Whisper)'
-                  : 'Voice Input (Groq Whisper LPU)'
-              }
+              title={isRecording ? 'Stop Recording' : 'Voice Input'}
               className={cn(
                 'h-8 w-8 rounded-full flex items-center justify-center transition-all',
                 isRecording
-                  ? 'bg-black text-white dark:bg-white dark:text-black scale-105'
-                  : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                  ? 'bg-black text-white dark:bg-white dark:text-black'
+                  : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200/60 dark:hover:bg-neutral-800/80'
               )}
             >
               {isTranscribing ? (
@@ -587,7 +551,7 @@ export const Composer: React.FC<ComposerProps> = ({
                 type="button"
                 onClick={onStop}
                 title="Stop Generating"
-                className="h-8 w-8 rounded-full bg-black text-white dark:bg-white dark:text-black flex items-center justify-center shadow-sm"
+                className="h-8 w-8 rounded-full bg-black text-white dark:bg-white dark:text-black flex items-center justify-center"
               >
                 <Square className="w-3 h-3 fill-current" />
               </motion.button>
@@ -597,12 +561,12 @@ export const Composer: React.FC<ComposerProps> = ({
                 type="button"
                 onClick={handleSubmit}
                 disabled={!text.trim() && attachments.length === 0}
-                title="Send Message (Enter)"
+                title="Send"
                 className={cn(
                   'h-8 w-8 rounded-full flex items-center justify-center transition-all',
                   text.trim() || attachments.length > 0
-                    ? 'bg-black text-white dark:bg-white dark:text-black shadow-sm hover:scale-105'
-                    : 'bg-neutral-100 dark:bg-neutral-900 text-neutral-400 dark:text-neutral-600 cursor-not-allowed'
+                    ? 'bg-black text-white dark:bg-white dark:text-black hover:opacity-90'
+                    : 'bg-neutral-200/70 dark:bg-neutral-800/70 text-neutral-400 dark:text-neutral-600 cursor-not-allowed'
                 )}
               >
                 <ArrowUp className="w-4 h-4 stroke-[2.2]" />
@@ -610,16 +574,6 @@ export const Composer: React.FC<ComposerProps> = ({
             )}
           </div>
         </div>
-      </div>
-
-      {/* Subtle Desktop Footer Hint */}
-      <div className="mt-1.5 px-2 flex items-center justify-between text-[10px] text-neutral-400 dark:text-neutral-600 select-none">
-        <span>
-          Type <kbd className="font-mono">/</kbd> for prompts • Paste images for Vision
-        </span>
-        <span className="font-mono hidden sm:inline">
-          {activeModel?.id.split('/').pop()} • {activeModel?.speedLabel}
-        </span>
       </div>
     </div>
   );

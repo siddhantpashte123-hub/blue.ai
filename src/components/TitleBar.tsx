@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  AppWindow,
-  Command,
   Download,
   KeyRound,
   Maximize2,
@@ -10,11 +8,11 @@ import {
   Moon,
   PanelLeft,
   Pin,
+  Search,
   SlidersHorizontal,
   Square,
   Sun,
   X,
-  Zap,
 } from 'lucide-react';
 import { GroqModelInfo, ThemeMode } from '../types';
 import { cn } from '../utils/helpers';
@@ -31,8 +29,6 @@ interface TitleBarProps {
   onOpenSettings: () => void;
   hasApiKey: boolean;
   isStreaming: boolean;
-  framedPreview: boolean;
-  onToggleFramedPreview: () => void;
   models: GroqModelInfo[];
   selectedModelId: string;
   onSelectModel: (modelId: string) => void;
@@ -50,8 +46,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   onOpenSettings,
   hasApiKey,
   isStreaming,
-  framedPreview,
-  onToggleFramedPreview,
   models,
   selectedModelId,
   onSelectModel,
@@ -63,86 +57,38 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
 
   useEffect(() => {
-    if (!window.blueDesktop) return;
+    if (!window.blueDesktop?.isElectron) return;
     window.blueDesktop.getWindowState().then((st) => {
       setIsMaximized(st.isMaximized);
       setAlwaysOnTop(st.isAlwaysOnTop);
     });
-    const unsubscribe = window.blueDesktop.onMaximizedChanged((val) => {
+    return window.blueDesktop.onMaximizedChanged((val) => {
       setIsMaximized(val);
     });
-    return unsubscribe;
   }, []);
 
   const handleTogglePin = async () => {
     if (window.blueDesktop?.setAlwaysOnTop) {
       const next = await window.blueDesktop.setAlwaysOnTop(!alwaysOnTop);
       setAlwaysOnTop(next);
-    } else {
-      setAlwaysOnTop((prev) => !prev);
     }
   };
 
   return (
-    <header className="app-drag-region h-12 shrink-0 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-black/95 backdrop-blur-md flex items-center justify-between px-3 gap-2 z-30">
-      {/* Left: Window Dots + Sidebar + Brand + Prominent Model Switcher */}
-      <div className="flex items-center gap-2 min-w-0">
-        <div className="app-no-drag flex items-center gap-1.5 pr-0.5">
+    <header className="app-drag-region h-12 shrink-0 bg-white/85 dark:bg-black/85 backdrop-blur-md flex items-center justify-between px-3 z-30">
+      {/* Left: Sidebar Toggle + Clean Model Dropdown */}
+      <div className="flex items-center gap-1 min-w-0">
+        {!sidebarOpen && (
           <button
             type="button"
-            onClick={() => {
-              if (isElectron) window.blueDesktop?.close();
-            }}
-            title={isElectron ? 'Close Window' : 'Desktop Window Chrome'}
-            className="w-2.5 h-2.5 rounded-full border border-neutral-400 dark:border-neutral-600 bg-neutral-900 dark:bg-neutral-100 hover:scale-110 transition-transform"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              if (isElectron) window.blueDesktop?.minimize();
-            }}
-            title="Minimize"
-            className="w-2.5 h-2.5 rounded-full border border-neutral-400 dark:border-neutral-600 bg-transparent hover:bg-neutral-400 dark:hover:bg-neutral-600 transition-colors"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              if (isElectron) {
-                window.blueDesktop?.maximize();
-              } else {
-                onToggleFramedPreview();
-              }
-            }}
-            title={
-              isElectron
-                ? 'Maximize / Restore'
-                : framedPreview
-                ? 'Expand to Full Viewport'
-                : 'Preview Floating Desktop Window'
-            }
-            className="w-2.5 h-2.5 rounded-full border border-neutral-400 dark:border-neutral-600 bg-neutral-300 dark:bg-neutral-700 hover:bg-black dark:hover:bg-white transition-colors"
-          />
-        </div>
+            onClick={onToggleSidebar}
+            title="Open Sidebar (Ctrl+B)"
+            className="app-no-drag w-8 h-8 rounded-lg flex items-center justify-center text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </button>
+        )}
 
-        <button
-          type="button"
-          onClick={onToggleSidebar}
-          title="Toggle Sidebar (Ctrl+B)"
-          className={cn(
-            'app-no-drag p-1.5 rounded-lg transition-colors',
-            sidebarOpen
-              ? 'bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white'
-              : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900'
-          )}
-        >
-          <PanelLeft className="w-4 h-4" />
-        </button>
-
-        <span className="hidden sm:inline font-semibold tracking-tight text-sm text-black dark:text-white select-none pr-1">
-          blue.ai
-        </span>
-
-        {/* Prominent Top Header Groq Model Selector */}
         <ModelSwitcher
           models={models}
           selectedModelId={selectedModelId}
@@ -152,197 +98,150 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         />
       </div>
 
-      {/* Center: Quick Command Search Trigger */}
-      <div className="hidden lg:flex flex-1 max-w-xs mx-2 justify-center">
-        <button
-          type="button"
-          onClick={onOpenCommandPalette}
-          className="app-no-drag w-full h-8 px-3 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 hover:border-black dark:hover:border-white transition-all flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 group"
-        >
-          <span className="flex items-center gap-1.5 truncate">
-            <Command className="w-3.5 h-3.5 text-neutral-400 group-hover:text-black dark:group-hover:text-white transition-colors" />
-            <span>Search & commands...</span>
-          </span>
-          <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300">
-            ⌘K
-          </kbd>
-        </button>
-      </div>
-
-      {/* Right: Download .exe, Groq Status, Pure White/Black Theme Switch, Window Controls */}
-      <div className="app-no-drag flex items-center gap-1.5 shrink-0">
+      {/* Right: Minimalist Ghost Action Icons */}
+      <div className="app-no-drag flex items-center gap-1 shrink-0">
         {!isNativeDesktop && (
           <a
             href="./blue.ai.exe"
             download="blue.ai.exe"
-            title="Direct Download blue.ai Windows Desktop App (.exe)"
-            className="h-8 px-3 rounded-full bg-black text-white dark:bg-white dark:text-black text-xs font-semibold flex items-center gap-1.5 hover:opacity-90 transition-opacity shadow-sm"
+            title="Download Windows Desktop App (.exe)"
+            className="h-7 px-2.5 mr-1 rounded-full bg-black text-white dark:bg-white dark:text-black text-[11px] font-medium flex items-center gap-1.5 hover:opacity-85 transition-opacity"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Download .exe</span>
+            <Download className="w-3 h-3" />
+            <span>.exe</span>
           </a>
         )}
 
+        {!hasApiKey ? (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="h-7 px-3 mr-1 rounded-full bg-black text-white dark:bg-white dark:text-black text-[11px] font-medium flex items-center gap-1.5 hover:opacity-85 transition-opacity"
+          >
+            <KeyRound className="w-3 h-3" />
+            <span>Add Groq Key</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            title="Groq Connected — Settings (Ctrl+,)"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors relative"
+          >
+            <KeyRound className="w-4 h-4" />
+            <span
+              className={cn(
+                'w-1.5 h-1.5 rounded-full bg-black dark:bg-white absolute top-2 right-2',
+                isStreaming && 'animate-ping'
+              )}
+            />
+          </button>
+        )}
+
+        {/* Command Palette Search Icon */}
         <button
           type="button"
-          onClick={onOpenSettings}
-          title="Configure Groq API Key & Settings (Ctrl+,)"
-          className={cn(
-            'h-8 px-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all border',
-            hasApiKey
-              ? 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 text-black dark:text-white hover:border-black dark:hover:border-white'
-              : 'border-black dark:border-white bg-black text-white dark:bg-white dark:text-black hover:opacity-90'
-          )}
+          onClick={onOpenCommandPalette}
+          title="Command Palette (Ctrl+K)"
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
         >
-          {hasApiKey ? (
-            <>
-              <span
-                className={cn(
-                  'w-1.5 h-1.5 rounded-full bg-black dark:bg-white',
-                  isStreaming && 'animate-ping'
-                )}
-              />
-              <Zap className="w-3 h-3" />
-              <span className="hidden md:inline">Groq Connected</span>
-            </>
-          ) : (
-            <>
-              <KeyRound className="w-3 h-3" />
-              <span>Connect Key</span>
-            </>
-          )}
+          <Search className="w-4 h-4" />
         </button>
 
-        {/* Segmented Pure White / Pure Black Theme Toggle */}
-        <div
-          role="group"
-          aria-label="Theme Mode"
-          className="h-8 p-0.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 flex items-center"
+        {/* Animated Single-Icon White / Black Theme Toggle */}
+        <button
+          type="button"
+          onClick={() => onToggleTheme(theme === 'light' ? 'dark' : 'light')}
+          title={
+            theme === 'light'
+              ? 'Switch to Pure Black Mode (Ctrl+Shift+L)'
+              : 'Switch to Pure White Mode (Ctrl+Shift+L)'
+          }
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
         >
-          <button
-            type="button"
-            onClick={() => onToggleTheme('light')}
-            title="Pure White Mode"
-            className={cn(
-              'relative px-2 h-full rounded-full text-[11px] font-medium flex items-center gap-1 transition-colors z-10',
-              theme === 'light'
-                ? 'text-white'
-                : 'text-neutral-500 hover:text-white'
-            )}
-          >
-            {theme === 'light' && (
+          <AnimatePresence mode="wait" initial={false}>
+            {theme === 'light' ? (
               <motion.span
-                layoutId="theme-pill"
-                transition={{ type: 'spring', stiffness: 450, damping: 32 }}
-                className="absolute inset-0 rounded-full bg-black -z-10"
-              />
-            )}
-            <Sun className="w-3 h-3" />
-            <span className="hidden xl:inline">White</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onToggleTheme('dark')}
-            title="Pure Black Mode"
-            className={cn(
-              'relative px-2 h-full rounded-full text-[11px] font-medium flex items-center gap-1 transition-colors z-10',
-              theme === 'dark'
-                ? 'text-black'
-                : 'text-neutral-500 hover:text-black'
-            )}
-          >
-            {theme === 'dark' && (
+                key="sun"
+                initial={{ rotate: -60, opacity: 0, scale: 0.7 }}
+                animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                exit={{ rotate: 60, opacity: 0, scale: 0.7 }}
+                transition={{ duration: 0.16 }}
+              >
+                <Moon className="w-4 h-4" />
+              </motion.span>
+            ) : (
               <motion.span
-                layoutId="theme-pill"
-                transition={{ type: 'spring', stiffness: 450, damping: 32 }}
-                className="absolute inset-0 rounded-full bg-white -z-10"
-              />
+                key="moon"
+                initial={{ rotate: 60, opacity: 0, scale: 0.7 }}
+                animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                exit={{ rotate: -60, opacity: 0, scale: 0.7 }}
+                transition={{ duration: 0.16 }}
+              >
+                <Sun className="w-4 h-4" />
+              </motion.span>
             )}
-            <Moon className="w-3 h-3" />
-            <span className="hidden xl:inline">Black</span>
-          </button>
-        </div>
+          </AnimatePresence>
+        </button>
 
-        {isElectron ? (
-          <button
-            type="button"
-            onClick={handleTogglePin}
-            title={alwaysOnTop ? 'Unpin Always-on-Top' : 'Pin Window Always-on-Top'}
-            className={cn(
-              'p-1.5 rounded-lg transition-colors',
-              alwaysOnTop
-                ? 'bg-black text-white dark:bg-white dark:text-black'
-                : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900'
-            )}
-          >
-            <Pin className="w-3.5 h-3.5" />
-          </button>
-        ) : !isNativeDesktop ? (
-          <button
-            type="button"
-            onClick={onToggleFramedPreview}
-            title={
-              framedPreview
-                ? 'Switch to Fullscreen Studio'
-                : 'Preview Desktop Window Frame'
-            }
-            className={cn(
-              'hidden sm:inline-flex p-1.5 rounded-lg transition-colors',
-              framedPreview
-                ? 'bg-black text-white dark:bg-white dark:text-black'
-                : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900'
-            )}
-          >
-            <AppWindow className="w-3.5 h-3.5" />
-          </button>
-        ) : null}
-
+        {/* Parameter Inspector Toggle */}
         <button
           type="button"
           onClick={onToggleInspector}
-          title="Model Parameters & System Prompt (Ctrl+.)"
+          title="Parameters & System Prompt (Ctrl+.)"
           className={cn(
-            'p-1.5 rounded-lg transition-colors',
+            'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
             inspectorOpen
               ? 'bg-black text-white dark:bg-white dark:text-black'
               : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900'
           )}
         >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
+          <SlidersHorizontal className="w-4 h-4" />
         </button>
 
         {isElectron && (
-          <div className="flex items-center pl-1 ml-1 border-l border-neutral-200 dark:border-neutral-800 gap-0.5">
+          <>
             <button
               type="button"
-              onClick={() => window.blueDesktop?.minimize()}
-              className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-500 hover:text-black dark:hover:text-white"
-              title="Minimize"
-            >
-              <Minimize2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => window.blueDesktop?.maximize()}
-              className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-500 hover:text-black dark:hover:text-white"
-              title={isMaximized ? 'Restore' : 'Maximize'}
-            >
-              {isMaximized ? (
-                <Square className="w-3 h-3" />
-              ) : (
-                <Maximize2 className="w-3.5 h-3.5" />
+              onClick={handleTogglePin}
+              title={alwaysOnTop ? 'Unpin Window' : 'Pin Always-on-Top'}
+              className={cn(
+                'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+                alwaysOnTop
+                  ? 'bg-black text-white dark:bg-white dark:text-black'
+                  : 'text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900'
               )}
-            </button>
-            <button
-              type="button"
-              onClick={() => window.blueDesktop?.close()}
-              className="p-1.5 rounded hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black text-neutral-500 transition-colors"
-              title="Close"
             >
-              <X className="w-3.5 h-3.5" />
+              <Pin className="w-3.5 h-3.5" />
             </button>
-          </div>
+            <div className="flex items-center pl-1 ml-0.5 border-l border-neutral-200 dark:border-neutral-800 gap-0.5">
+              <button
+                type="button"
+                onClick={() => window.blueDesktop?.minimize()}
+                className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-500 hover:text-black dark:hover:text-white"
+              >
+                <Minimize2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => window.blueDesktop?.maximize()}
+                className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-900 text-neutral-500 hover:text-black dark:hover:text-white"
+              >
+                {isMaximized ? (
+                  <Square className="w-3 h-3" />
+                ) : (
+                  <Maximize2 className="w-3.5 h-3.5" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => window.blueDesktop?.close()}
+                className="p-1.5 rounded hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black text-neutral-500 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </>
         )}
       </div>
     </header>
