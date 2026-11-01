@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowUpRight,
   Check,
+  Download,
   KeyRound,
   Loader2,
   Sparkles,
@@ -40,6 +41,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   const [quickKey, setQuickKey] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [keyError, setKeyError] = useState<string | null>(null);
+  const isNativeDesktop =
+    Boolean(window.blueDesktop?.isElectron) || Boolean(window.isStandaloneExe);
 
   const handleQuickConnect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +89,19 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 max-w-md mx-auto">
           Ultra-clean monochrome desktop studio with sub-second Groq LPU streaming, Vision, Whisper voice, and Live Artifact Canvas.
         </p>
+
+        {!isNativeDesktop && (
+          <div className="pt-2">
+            <a
+              href="./blue.ai.exe"
+              download="blue.ai.exe"
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-black text-white dark:bg-white dark:text-black text-xs font-semibold hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download Windows Desktop App (blue.ai.exe)</span>
+            </a>
+          </div>
+        )}
       </motion.div>
 
       {/* Quick Inline Groq Key Onboarding Card (only shown when no API key is set yet) */}

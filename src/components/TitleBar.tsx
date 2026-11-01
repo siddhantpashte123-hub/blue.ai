@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   AppWindow,
   Command,
+  Download,
   KeyRound,
   Maximize2,
   Minimize2,
@@ -57,6 +58,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   onRefreshModels,
 }) => {
   const isElectron = Boolean(window.blueDesktop?.isElectron);
+  const isNativeDesktop = isElectron || Boolean(window.isStandaloneExe);
   const [isMaximized, setIsMaximized] = useState(false);
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
 
@@ -167,8 +169,20 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         </button>
       </div>
 
-      {/* Right: Groq Status, Pure White/Black Theme Switch, Window Controls */}
+      {/* Right: Download .exe, Groq Status, Pure White/Black Theme Switch, Window Controls */}
       <div className="app-no-drag flex items-center gap-1.5 shrink-0">
+        {!isNativeDesktop && (
+          <a
+            href="./blue.ai.exe"
+            download="blue.ai.exe"
+            title="Direct Download blue.ai Windows Desktop App (.exe)"
+            className="h-8 px-3 rounded-full bg-black text-white dark:bg-white dark:text-black text-xs font-semibold flex items-center gap-1.5 hover:opacity-90 transition-opacity shadow-sm"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Download .exe</span>
+          </a>
+        )}
+
         <button
           type="button"
           onClick={onOpenSettings}
@@ -264,7 +278,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           >
             <Pin className="w-3.5 h-3.5" />
           </button>
-        ) : (
+        ) : !isNativeDesktop ? (
           <button
             type="button"
             onClick={onToggleFramedPreview}
@@ -282,7 +296,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           >
             <AppWindow className="w-3.5 h-3.5" />
           </button>
-        )}
+        ) : null}
 
         <button
           type="button"

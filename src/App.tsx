@@ -213,13 +213,16 @@ export const App: React.FC = () => {
     }
   }, [settings, conversations, customPersonas, customPrompts]);
 
-  // Apply Pure White / Pure Black theme class
+  // Apply Pure White / Pure Black theme class + native OS titlebar color
   useEffect(() => {
     const root = document.documentElement;
+    const meta = document.getElementById('theme-color-meta');
     if (settings.theme === 'dark') {
       root.classList.add('dark');
+      meta?.setAttribute('content', '#000000');
     } else {
       root.classList.remove('dark');
+      meta?.setAttribute('content', '#FFFFFF');
     }
   }, [settings.theme]);
 

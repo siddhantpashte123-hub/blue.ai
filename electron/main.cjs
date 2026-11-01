@@ -5,6 +5,7 @@ const {
   dialog,
   shell,
   globalShortcut,
+  session,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -15,15 +16,17 @@ const getStorePath = () => path.join(app.getPath('userData'), 'blue-ai-data.json
 
 function createWindow() {
   const isDev = !app.isPackaged;
+  const isMac = process.platform === 'darwin';
 
   mainWindow = new BrowserWindow({
     width: 1320,
     height: 860,
     minWidth: 880,
     minHeight: 600,
-    frame: false,
-    titleBarStyle: 'hidden',
+    frame: isMac ? true : false,
+    ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
     backgroundColor: '#FFFFFF',
+    autoHideMenuBar: true,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -33,11 +36,18 @@ function createWindow() {
     },
   });
 
-  mainWindow.once('ready-to-show', () => {
-    if (mainWindow) {
+  let shown = false;
+  const revealWindow = () => {
+    if (!shown && mainWindow && !mainWindow.isDestroyed()) {
+      shown = true;
       mainWindow.show();
+      mainWindow.focus();
     }
-  });
+  };
+
+  mainWindow.once('ready-to-show', revealWindow);
+  mainWindow.webContents.once('did-finish-load', revealWindow);
+  setTimeout(revealWindow, 1800);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://') || url.startsWith('http://')) {
@@ -62,12 +72,23 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Ensure clean native desktop requests to Groq API from file:// origin
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['https://api.groq.com/*'] },
+    (details, callback) => {
+      if (details.requestHeaders.Origin === 'file://' || details.requestHeaders.Origin === 'null') {
+        delete details.requestHeaders.Origin;
+      }
+      callback({ requestHeaders: details.requestHeaders });
+    }
+  );
+
   createWindow();
 
   // Global desktop hotkey: Ctrl/Cmd + Shift + Space to summon/toggle blue.ai
   try {
     globalShortcut.register('CommandOrControl+Shift+Space', () => {
-      if (!mainWindow) {
+      if (!mainWindow || mainWindow.isDestroyed()) {
         createWindow();
         return;
       }
