@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+}
+
+/* Electron custom window drag regions */
+.app-drag-region {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Ultra-clean minimalist monochrome scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+/* Subtle architectural dot grid for Desktop Frame backdrop */
+.desktop-grid-light {
+  background-color: #f3f3f3;
+  background-image: radial-gradient(#c8c8c8 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.desktop-grid-dark {
+  background-color: #0b0b0b;
+  background-image: radial-gradient(#242424 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Monochrome Range Input Sliders */
+input[type='range'].mono-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: #e5e5e5;
+  outline: none;
+}
+
+.dark input[type='range'].mono-slider {
+  background: #262626;
+}
+
+input[type='range'].mono-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #000000;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.dark input[type='range'].mono-slider::-webkit-slider-thumb {
+  background: #ffffff;
+  border: 2px solid #000000;
+  box-shadow: 0 1px 4px rgba(255, 255, 255, 0.25);
+}
+
+input[type='range'].mono-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+}
